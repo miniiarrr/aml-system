@@ -1,12 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 from pydantic import BaseModel
 import uuid
 import asyncio
-from typing import Dict, List
-import requests
+from typing import Dict
 import json
+from src.models import TransactionInput, WorkflowStatus, InitNodeInput
+from src.workflow_manager import WorkflowManager
+from src.workflow import Workflow
 
 app = FastAPI()
 
@@ -19,6 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize workflow manager
+workflow_manager = WorkflowManager()
+
 # In-memory storage for workflow states
 workflows: Dict[str, Dict] = {}
 
@@ -27,77 +32,119 @@ class WorkflowUpdate(BaseModel):
     message: str
 
 @app.post("/workflow/start")
-async def start_workflow():
-    workflow_id = str(uuid.uuid4())
-    workflows[workflow_id] = {
-        "status": "initialized",
-        "messages": [],
-        "completed": False
-    }
+async def start_workflow(request: Request):
+    """
+    Start a new workflow.
     
-    # Start the workflow process
-    asyncio.create_task(process_workflow(workflow_id))
+    Args:
+        request (Request): The incoming request containing workflow input data
+        background_tasks (BackgroundTasks): FastAPI background tasks
+        
+    Returns:
+        Dict: Contains the workflow ID if successful
+        
+    Raises:
+        HTTPException: If workflow creation fails
+    """
+    try:
+        data = await request.json()
+        workflow_id = str(uuid.uuid4()) if not data.get("workflow_id", None) else data.get("workflow_id")
+        
+        # Create new workflow
+        workflow = Workflow(
+            workflow_id=workflow_id,
+            name=data.get("name", "Unnamed Workflow"),
+            parameters=data.get("parameters", {}),
+        )
+        
+        # Add workflow to manager
+        workflow_manager.add_workflow(workflow)
+        
+        # Start the workflow
+        success = await workflow_manager.start_workflow(workflow_id, data.get("input", {}))
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to start workflow")
+        
+        return {"workflow_id": workflow_id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/workflow/{workflow_id}/init_node")
+async def init_node(workflow_id: str, node_data: InitNodeInput):
+    """
+    Initialize a workflow with a node.
     
-    return {"workflow_id": workflow_id}
+    Args:
+        workflow_id (str): ID of the workflow to add the node to
+        node_data (InitNodeInput): Node data to add
+        
+    Returns:
+        Dict: The created node data if successful
+        
+    Raises:
+        HTTPException: If workflow not found or node creation fails
+    """
+    try:
+        workflow = workflow_manager.get_workflow(workflow_id)
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+            
+        # Add node to workflow
+        node = workflow.add_node(
+            wallet=node_data.wallet,
+            blockchain=node_data.blockchain,
+            link_etherscan=node_data.link_etherscan
+        )
+        
+        # Return node data
+        return {
+            "internal_id": node.internal_id,
+            "wallet": node.wallet,
+            "blockchain": node.blockchain,
+            "link_etherscan": node.link_etherscan
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/workflow/{workflow_id}/add_transaction")
+async def add_transaction(workflow_id: str, transaction: TransactionInput):
+    """
+    Add a transaction to a workflow.
+    
+    Args:
+        workflow_id (str): ID of the workflow to add the transaction to
+        transaction (TransactionInput): Transaction data to add
+        
+    Returns:
+        Dict: The created edge data if successful
+        
+    Raises:
+        HTTPException: If workflow not found or transaction addition fails
+    """
+    result = workflow_manager.add_transaction(workflow_id, transaction)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Workflow not found or transaction addition failed")
+    return result
 
 @app.get("/workflow/{workflow_id}/events")
 async def workflow_events(workflow_id: str):
-    if workflow_id not in workflows:
+    workflow = workflow_manager.get_workflow(workflow_id)
+    if not workflow:
         raise HTTPException(status_code=404, detail="Workflow not found")
-    
+
     async def event_generator():
-        while not workflows[workflow_id]["completed"]:
-            if workflows[workflow_id]["messages"]:
-                message = workflows[workflow_id]["messages"].pop(0)
+        while workflow.status not in [WorkflowStatus.COMPLETED, WorkflowStatus.ERROR, WorkflowStatus] or workflow.has_changes():
+            if workflow.has_changes():
+                data = workflow.get_buffer()
                 yield {
                     "event": "message",
-                    "data": json.dumps({
-                        "status": workflows[workflow_id]["status"],
-                        "message": message
-                    })
+                    "data": json.dumps(data)
                 }
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(1)
     
     return EventSourceResponse(event_generator())
-
-async def process_workflow(workflow_id: str):
-    try:
-        # Update workflow status
-        workflows[workflow_id]["status"] = "processing"
-        workflows[workflow_id]["messages"].append("Workflow started processing")
-        
-        # Send initial request to AI agent system
-        response = requests.post(
-            "http://localhost:8001/agent/start",
-            json={"workflow_id": workflow_id}
-        )
-        
-        if response.status_code != 200:
-            raise Exception("Failed to start AI agent process")
-        
-        # Monitor AI agent progress
-        while not workflows[workflow_id]["completed"]:
-            agent_response = requests.get(
-                f"http://localhost:8001/agent/{workflow_id}/status"
-            )
-            
-            if agent_response.status_code == 200:
-                agent_data = agent_response.json()
-                workflows[workflow_id]["status"] = agent_data["status"]
-                workflows[workflow_id]["messages"].append(agent_data["message"])
-                
-                if agent_data["completed"]:
-                    workflows[workflow_id]["completed"] = True
-                    break
-            
-            await asyncio.sleep(1)
-        
-        workflows[workflow_id]["messages"].append("Workflow completed successfully")
-        
-    except Exception as e:
-        workflows[workflow_id]["status"] = "error"
-        workflows[workflow_id]["messages"].append(f"Error: {str(e)}")
-        workflows[workflow_id]["completed"] = True
 
 if __name__ == "__main__":
     import uvicorn

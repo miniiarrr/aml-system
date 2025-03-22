@@ -30,6 +30,7 @@ class AIAgentConfig(BaseSettings):
 class Configs(BaseSettings):
     # System-wide settings
     LOG_LEVEL: str = "INFO"
+    ENV: str = "local"
     
     # Nested configurations
     FRONTEND: FrontendConfig = FrontendConfig()
