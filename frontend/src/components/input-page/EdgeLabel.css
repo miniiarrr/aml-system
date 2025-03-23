@@ -1,0 +1,198 @@
+/* EdgeLabel.css - Cyberpunk styling for edge labels */
+:root {
+  --cyberpunk-acid: #39FF14;     /* Acid green */
+  --cyberpunk-purple: #9D00FF;   /* Electric purple */
+  --cyberpunk-blue: #00F0FF;     /* Lightning blue */
+  --cyberpunk-pink: #FF00FF;     /* Hot pink */
+  --cyberpunk-yellow: #FFFF00;   /* Neon yellow */
+  --cyberpunk-bg: rgba(10, 12, 20, 0.98); /* Dark bg with transparency */
+}
+
+.edge-label-container {
+  pointer-events: all;
+  background: transparent;
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+}
+
+.edge-tooltip-link {
+  text-decoration: none;
+  display: block;
+}
+
+/* Simple display styles - amount and token */
+.edge-label-simple {
+  background: var(--cyberpunk-bg);
+  color: var(--cyberpunk-acid);
+  padding: 4px 8px;
+  border: 1px solid var(--cyberpunk-blue);
+  border-radius: 3px;
+  font-family: 'Jersey 10', monospace;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: 0 0 5px rgba(0, 240, 255, 0.4);
+  text-align: center;
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edge-label-simple:hover {
+  background: rgba(20, 20, 35, 0.9);
+  color: var(--cyberpunk-yellow);
+  transform: scale(1.05);
+  box-shadow: 0 0 8px var(--cyberpunk-acid);
+}
+
+/* Radix UI Tooltip Content Override */
+.edge-tooltip-content {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  width: auto !important;
+  max-width: 300px !important;
+  z-index: 1000 !important;
+}
+
+/* Detailed tooltip styles */
+.edge-tooltip {
+  background: var(--cyberpunk-bg);
+  color: white;
+  padding: 8px 12px;
+  border: 1px solid var(--cyberpunk-acid);
+  border-radius: 2px;
+  font-family: 'Jersey 10', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  min-width: 180px;
+  max-width: 250px;
+  text-align: left;
+  white-space: nowrap;
+  box-shadow: 
+    0 0 10px rgba(57, 255, 20, 0.5),
+    0 0 20px rgba(0, 240, 255, 0.2);
+  clip-path: polygon(
+    0% 0%, 
+    95% 0%, 
+    100% 20%, 
+    100% 100%, 
+    5% 100%, 
+    0% 80%
+  );
+  overflow: hidden;
+  position: relative;
+}
+
+/* Add glowing border effect */
+.edge-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px solid var(--cyberpunk-blue);
+  filter: blur(1px);
+  clip-path: polygon(
+    0% 0%, 
+    95% 0%, 
+    100% 20%, 
+    100% 100%, 
+    5% 100%, 
+    0% 80%
+  );
+  z-index: -1;
+  opacity: 0.7;
+}
+
+/* Panel header */
+.edge-tooltip-header {
+  position: absolute;
+  top: 0;
+  right: 5px;
+  padding: 0 5px;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--cyberpunk-acid);
+  background: rgba(0, 0, 0, 0.8);
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  z-index: 2;
+}
+
+/* Scanline effect */
+.edge-tooltip-scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(0, 0, 0, 0.05) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.3;
+}
+
+.tooltip-row {
+  margin: 2px 0;
+  color: var(--cyberpunk-blue);
+  text-shadow: 0 0 5px rgba(0, 240, 255, 0.5);
+  position: relative;
+  padding-left: 8px;
+  z-index: 2;
+}
+
+.tooltip-row:before {
+  content: '>';
+  color: var(--cyberpunk-acid);
+  position: absolute;
+  left: 0;
+}
+
+.tooltip-key {
+  color: var(--cyberpunk-yellow);
+  margin-right: 4px;
+}
+
+.tooltip-row:hover {
+  color: var(--cyberpunk-yellow);
+}
+
+/* Override ReactFlow edge styles */
+.react-flow__edge path {
+  stroke: var(--cyberpunk-purple);
+  stroke-width: 1.5;
+  transition: all 0.3s ease;
+}
+
+/* .react-flow__edge:hover path { */
+  /* stroke: var(--cyberpunk-acid);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 5px var(--cyberpunk-acid));
+} */
+
+/* Edge animation - data flow effect */
+/* .react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: flowAnimation 0.5s linear infinite;
+} */
+
+/* @keyframes flowAnimation {
+  0% {
+    stroke-dashoffset: 10;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+} */

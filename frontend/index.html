@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>clickable-edge-tree</title>
+    <!-- Fix vertical stripe issue -->
+    <style>
+      html, body {
+        overflow-x: hidden;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      /* Force hide any vertical border on the right */
+      body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 5px;
+        height: 100vh;
+        background-color: #070715;
+        z-index: 9999;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
