@@ -27,6 +27,16 @@ class AIAgentConfig(BaseSettings):
         """Get the full URL for the AI agent system."""
         return f"http://{self.HOST}:{self.PORT}"
 
+class MongoDBConfig(BaseSettings):
+    URI: str
+    DB_NAME: str
+    CONNECTION_TIMEOUT: int = 5000  # ms
+    
+    @property
+    def connection_string(self) -> str:
+        """Get the MongoDB connection string."""
+        return self.URI
+
 class Configs(BaseSettings):
     # System-wide settings
     LOG_LEVEL: str = "INFO"
@@ -36,6 +46,7 @@ class Configs(BaseSettings):
     FRONTEND: FrontendConfig = FrontendConfig()
     WORKFLOW: WorkflowConfig = WorkflowConfig()
     AI_AGENT: AIAgentConfig = AIAgentConfig()
+    MONGODB: MongoDBConfig = MongoDBConfig()
     
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",

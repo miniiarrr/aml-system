@@ -9,6 +9,7 @@ import json
 from src.models import TransactionInput, WorkflowStatus, InitNodeInput
 from src.workflow_manager import WorkflowManager
 from src.workflow import Workflow
+from src.database import db, setup_transaction_watcher
 
 app = FastAPI()
 
@@ -30,6 +31,29 @@ workflows: Dict[str, Dict] = {}
 class WorkflowUpdate(BaseModel):
     status: str
     message: str
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Initialize connections and services on application startup.
+    """
+    # Connect to MongoDB
+    connected = await db.connect()
+    if not connected:
+        raise Exception("Failed to connect to MongoDB")
+    
+    # Set up transaction watcher
+    watcher_setup = await setup_transaction_watcher(workflow_manager)
+    if not watcher_setup:
+        raise Exception("Failed to set up transaction watcher")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    Clean up connections and resources on application shutdown.
+    """
+    # Disconnect from MongoDB
+    await db.disconnect()
 
 @app.post("/workflow/start")
 async def start_workflow(request: Request):

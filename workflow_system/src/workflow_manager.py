@@ -144,3 +144,56 @@ class WorkflowManager:
         except Exception as e:
             logger.error(f"Error adding transaction to workflow {workflow_id}: {str(e)}")
             return None
+
+    async def add_transaction_event(self, event: Dict[str, Any]) -> Optional[Dict]:
+        """
+        Process a transaction event from the MongoDB change stream.
+        
+        This method is called when a new transaction is added to the database
+        or an existing transaction is updated. It extracts the transaction data
+        and forwards it to the appropriate workflow.
+        
+        Args:
+            event (Dict[str, Any]): Change event from MongoDB change stream
+            
+        Returns:
+            Optional[Dict]: The created edge data if successful, None if workflow not found or error
+        """
+        try:
+            # Extract the full document from the event
+            document = event.get('fullDocument')
+            if not document:
+                logger.warning("Received change event with no fullDocument")
+                return None
+            
+            # Extract workflow_id from the document
+            workflow_id = document.get('workflow_id')
+            if not workflow_id:
+                logger.warning("Transaction document has no workflow_id field")
+                return None
+            
+            # Convert MongoDB document to TransactionInput
+            transaction = TransactionInput(
+                from_blockchain=document.get('from_blockchain'),
+                from_wallet=document.get('from_wallet'),
+                to_blockchain=document.get('to_blockchain'),
+                to_wallet=document.get('to_wallet'),
+                hash=document.get('hash'),
+                sum=document.get('sum'),
+                ticker_token=document.get('ticker_token'),
+                date=document.get('date'),
+                prev_hash=document.get('prev_hash')
+            )
+            
+            # Add the transaction to the workflow
+            result = self.add_transaction(workflow_id, transaction)
+            if result:
+                logger.info(f"Successfully processed transaction event for workflow {workflow_id}")
+            else:
+                logger.warning(f"Failed to process transaction event for workflow {workflow_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error processing transaction event: {str(e)}")
+            return None
