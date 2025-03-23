@@ -62,3 +62,5 @@ The system consists of three main components:
 3. Workflow System coordinates with AI Agents
 4. AI Agents process tasks and update Workflow System
 5. Workflow System sends updates to UI via SSE 
+
+Participant wallet: 0x9CeaC40E54573409F346257Ba941Fae408513028
